@@ -19,14 +19,14 @@ python manage.py migrate
 # --enable-threads: Allows threads to be used within worker processes.
 # --module app.wsgi: Specifies the WSGI application module (app.wsgi) to use.
 # gunicorn moneyTracker.wsgi:application --bind 0.0.0.0:8000
-# daphne -b 0.0.0.0 -p 8000 taypa.asgi:application
-# gunicorn taypa.wsgi:application --bind 0.0.0.0:8000 --timeout=5 --threads=10
+# daphne -b 0.0.0.0 -p 8000 jobai.asgi:application
+# gunicorn jobai.wsgi:application --bind 0.0.0.0:8000 --timeout=5 --threads=10
 
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "Starting server with Daphne for development (supports WebSockets)..."
-    exec daphne -b 0.0.0.0 -p 8000 taypa.asgi:application
+    exec daphne -b 0.0.0.0 -p 8000 jobai.asgi:application
 else
     echo "Starting server with Daphne for production (supports WebSockets)..."
-    exec daphne -b 0.0.0.0 -p 8000 taypa.asgi:application
+    exec daphne -b 0.0.0.0 -p 8000 jobai.asgi:application
 fi
 
