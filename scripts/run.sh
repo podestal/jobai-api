@@ -24,7 +24,7 @@ python manage.py collectstatic --noinput
 
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "Starting server with Daphne for development (supports WebSockets)..."
-    exec daphne -b 0.0.0.0 -p 8000 jobai.asgi:application
+    exec python manage.py runserver 0.0.0.0:8000
 else
     echo "Starting server with Daphne for production (supports WebSockets)..."
     exec daphne -b 0.0.0.0 -p 8000 jobai.asgi:application
