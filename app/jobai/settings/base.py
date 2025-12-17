@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'core',
+    'apply',
     # 'auto_job',
 ]
 
