@@ -1,10 +1,55 @@
 from rest_framework import serializers
 from . import models
 
+
 class ResumeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Resume model.
+    Automatically handles user assignment and file upload to R2.
+    """
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    file_url = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = models.Resume
-        fields = '__all__'
+        fields = ['id', 'user', 'file', 'file_url', 'text_extracted', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at', 'file_url', 'text_extracted']
+    
+    def get_file_url(self, obj):
+        """Return the full URL of the uploaded file from R2"""
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+    
+    def validate_file(self, value):
+        """Validate the uploaded file"""
+        # Check file size (max 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f'File size too large. Maximum size is {max_size / (1024*1024)}MB'
+            )
+        
+        # Check file extension
+        allowed_extensions = ['.pdf', '.doc', '.docx']
+        file_name = value.name.lower()
+        if not any(file_name.endswith(ext) for ext in allowed_extensions):
+            raise serializers.ValidationError(
+                f'Invalid file type. Allowed types: {", ".join(allowed_extensions)}'
+            )
+        
+        return value
+    
+    def create(self, validated_data):
+        """Create a new resume instance, automatically setting the user"""
+        # Get the user from the request context
+        user = self.context['request'].user
+        validated_data['user'] = user
+        # File will automatically be saved to R2 via the storage backend
+        return super().create(validated_data)
 
 class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:
