@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from . import models
 from .utils import extract_text_from_file
+from .resume_parser import process_resume_with_gemini
 import logging
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,26 @@ class ResumeSerializer(serializers.ModelSerializer):
         validated_data['text_extracted'] = extracted_text
         
         # File will automatically be saved to R2 via the storage backend
-        return super().create(validated_data)
+        # Create the resume instance
+        resume = super().create(validated_data)
+        
+        # Process with Gemini and populate related models
+        # Do this after saving so we have the resume ID
+        if extracted_text and extracted_text.strip():
+            try:
+                # Process in background or async if needed, but for now do it synchronously
+                # This might take a few seconds, but ensures data is populated
+                success = process_resume_with_gemini(resume)
+                if not success:
+                    logger.warning(f"Gemini processing failed for resume {resume.id}, but resume was saved")
+            except Exception as e:
+                logger.error(f"Error processing resume with Gemini: {str(e)}")
+                # Don't fail the upload if Gemini processing fails
+                # The resume is already saved, we just couldn't parse it
+        else:
+            logger.info(f"Resume {resume.id} has no extracted text, skipping Gemini processing")
+        
+        return resume
 
 class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:
