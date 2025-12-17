@@ -4,7 +4,7 @@ from django.conf import settings
 class Resume(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     file = models.FileField(upload_to="resumes/")
-    text_extracted = models.TextField()  # raw text extraction
+    text_extracted = models.TextField(blank=True, default="")  # raw text extraction
     created_at = models.DateTimeField(auto_now_add=True)
 
 
