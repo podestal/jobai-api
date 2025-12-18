@@ -10,6 +10,34 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 
+def test_gemini_api_key() -> bool:
+    """
+    Test if the Gemini API key is valid by making a simple API call.
+    
+    Returns:
+        True if API key is valid, False otherwise
+    """
+    try:
+        import google.generativeai as genai
+        
+        api_key = os.getenv('GEMINI_KEY') or os.getenv('GEMINI_API_KEY')
+        if not api_key:
+            logger.error("GEMINI_KEY or GEMINI_API_KEY not found")
+            return False
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Make a simple test call
+        response = model.generate_content("Say 'API key is valid' if you can read this.")
+        logger.info(f"API key test successful: {response.text}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"API key test failed: {str(e)}")
+        return False
+
+
 def parse_resume_with_gemini(text: str) -> Optional[Dict[str, Any]]:
     """
     Send resume text to Gemini API and get structured JSON response.
@@ -33,11 +61,29 @@ def parse_resume_with_gemini(text: str) -> Optional[Dict[str, Any]]:
             logger.error("GEMINI_KEY or GEMINI_API_KEY not found in environment variables")
             return None
         
+        # Validate API key format (should start with AIza)
+        if not api_key.startswith('AIza'):
+            logger.warning(f"API key format looks unusual (doesn't start with 'AIza'): {api_key[:10]}...")
+        
         # Configure Gemini
         genai.configure(api_key=api_key)
         
-        # Initialize the model
-        model = genai.GenerativeModel('gemini-pro')
+        # Try different model names (gemini-1.5-pro, gemini-1.5-flash, gemini-pro)
+        # Start with gemini-1.5-flash as it's faster and cheaper
+        model_name = 'gemini-1.5-flash'
+        try:
+            model = genai.GenerativeModel(model_name)
+        except Exception as e:
+            logger.warning(f"Failed to use {model_name}, trying gemini-1.5-pro: {str(e)}")
+            model_name = 'gemini-1.5-pro'
+            try:
+                model = genai.GenerativeModel(model_name)
+            except Exception as e2:
+                logger.warning(f"Failed to use {model_name}, trying gemini-pro: {str(e2)}")
+                model_name = 'gemini-pro'
+                model = genai.GenerativeModel(model_name)
+        
+        logger.info(f"Using Gemini model: {model_name}")
         
         # Create the prompt for structured JSON extraction
         prompt = f"""Extract the following information from this resume text and return ONLY valid JSON. 
@@ -123,10 +169,21 @@ Return ONLY the JSON object, no markdown, no code blocks, no explanations."""
         
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON from Gemini response: {str(e)}")
-        logger.error(f"Response text: {response_text[:500]}")  # Log first 500 chars
+        if 'response_text' in locals():
+            logger.error(f"Response text: {response_text[:500]}")  # Log first 500 chars
         return None
     except Exception as e:
-        logger.error(f"Error calling Gemini API: {str(e)}")
+        error_msg = str(e)
+        logger.error(f"Error calling Gemini API: {error_msg}")
+        
+        # Check if it's an API key error
+        if 'API key' in error_msg or 'API_KEY' in error_msg:
+            logger.error("API key validation failed. Please check:")
+            logger.error("1. The API key is correct in your .env file")
+            logger.error("2. The API key is enabled in Google Cloud Console")
+            logger.error("3. The Generative Language API is enabled for your project")
+            logger.error(f"API key (first 20 chars): {api_key[:20]}...")
+        
         return None
 
 
