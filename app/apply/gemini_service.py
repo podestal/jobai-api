@@ -177,12 +177,29 @@ Return ONLY the JSON object, no markdown, no code blocks, no explanations."""
         logger.error(f"Error calling Gemini API: {error_msg}")
         
         # Check if it's an API key error
-        if 'API key' in error_msg or 'API_KEY' in error_msg:
-            logger.error("API key validation failed. Please check:")
-            logger.error("1. The API key is correct in your .env file")
-            logger.error("2. The API key is enabled in Google Cloud Console")
-            logger.error("3. The Generative Language API is enabled for your project")
-            logger.error(f"API key (first 20 chars): {api_key[:20]}...")
+        if 'API key' in error_msg or 'API_KEY' in error_msg or 'API_KEY_INVALID' in error_msg:
+            logger.error("=" * 60)
+            logger.error("GEMINI API KEY ERROR - ACTION REQUIRED")
+            logger.error("=" * 60)
+            logger.error("Your API key is being read but Google says it's invalid.")
+            logger.error("")
+            logger.error("SOLUTIONS:")
+            logger.error("1. Enable Generative Language API:")
+            logger.error("   - Go to: https://console.cloud.google.com/apis/library")
+            logger.error("   - Search: 'Generative Language API'")
+            logger.error("   - Click 'Enable'")
+            logger.error("")
+            logger.error("2. Check API key restrictions:")
+            logger.error("   - Go to: https://console.cloud.google.com/apis/credentials")
+            logger.error("   - Edit your API key")
+            logger.error("   - Make sure 'Generative Language API' is allowed")
+            logger.error("")
+            logger.error("3. Regenerate API key:")
+            logger.error("   - Go to: https://makersuite.google.com/app/apikey")
+            logger.error("   - Create new key and update .env file")
+            logger.error("")
+            logger.error(f"Current API key (first 20 chars): {api_key[:20]}...")
+            logger.error("=" * 60)
         
         return None
 
